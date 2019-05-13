@@ -61,15 +61,15 @@ set(handles.Start_Filtering,'Enable','off');
 set(handles.slider1, 'Enable', 'off');
 set(handles.slider1, 'Enable', 'off');
 set(handles.slider2, 'Enable', 'off');
-
+handles.time = [];
 guidata(hObject, handles);
  
-t=[0:0.1:20];
-A=0.5;
-fa=1;
-y=A*cos(fa*t);
-%calculate signal fft
-handles.y_fft=fft(y);
+% t=[0:0.1:20];
+% A=0.5;
+% fa=1;
+% y=A*cos(fa*t);
+% %calculate signal fft
+% handles.y_fft=fft(y);
 
 handles.p=[];   % Array holds poles in complex formula
 handles.z=[];   % Array holds zeros in complex formula
@@ -125,8 +125,9 @@ guidata(hObject, handles);
 
 function freq_plot(hObject, eventdata, handles)
 %clear the unit circuit axes
+global time ECGsignal i h Filtered fmax
 cla(handles.axes1,'reset');
-handles.fmax = 50
+fmax = 50;
 axes(handles.axes1)
 DrawUnitCircle(hObject, eventdata, handles);
 hold on
@@ -142,7 +143,7 @@ setappdata(0,'num_g',num)
 setappdata(0,'den_g',den)
 
 %Get the frequency response 
-[handles.h,handles.w] = freqz(num,den,length(handles.y_fft));
+[h,w] = freqz(num,den,3600);
 
 %plot the frequency response mag 
 
@@ -151,7 +152,7 @@ if (isempty(handles.p) && isempty(handles.z))
 else
     axes(handles.axes2)
    %  plot(handles.w/pi,(abs(handles.h)))
-    plot((handles.w/pi)*handles.fmax,20*log(abs(handles.h)),'r-');
+    plot((w/pi),(abs(h)),'r-');
     xlabel('Normalized Frequency (\times\pi rad/sample)')
     ylabel('Magnitude (dB)')
     grid on;
@@ -290,60 +291,24 @@ DrawUnitCircle(hObject, eventdata, handles)
 % Update handles structure
 guidata(hObject, handles);
 
-
-% % % --- Executes on button press in MY_Gain.
  
-
-
-
-% --- Executes on button press in Record.
-% function Record_Callback(hObject, eventdata, handles)
-% % hObject    handle to Record (see GCBO)
-% % eventdata  reserved - to be defined in a future version of MATLAB
-% % handles    structure with handles and user data (see GUIDATA)
-% flag = get(handles.Record,'Value');
-%  while (flag)
-% recorder = audiorecorder;
-% get(recorder);
-% recordblocking(recorder, 0.2);
-% set(handles.Record,'string','Stop...');
-% pause(.07);
-% myRecording = getaudiodata(recorder);
-% 
-% %filter voice
-% b = getappdata(0,'num_g');
-% a = getappdata(0,'den_g');
-% myRecording_filtered = filter(b,a,myRecording);
-% %plot voice
-% axes(handles.axes4);
-% y=0;
-% y=[y,myRecording.'];
-% plot (y)
-% %plot voice after filter 
-% axes(handles.axes5)
-% plot(myRecording_filtered);
-% 
-% flag = get(handles.Record,'value');
-% if flag==0
-%     set(handles.Record,'string','Start...');
-% end
-% end
-
-
 % --- Executes on button press in Browse_Button.
 function Browse_Button_Callback(hObject, eventdata, handles)
 % hObject    handle to Browse_Button (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+global time ECGsignal i h Filtered
  [filename] = uigetfile({'*.mat'},'file selector');
  signal = load(filename);
- handles.i = 1
- freq = 200
- handles.ECGsignal = (signal.val)/200;
- handles.time = (0:length(handles.ECGsignal)-1)/freq;
+ i = 1;
+ freq = 200;
+ ECGsignal = (signal.val)/200;
+ time = (0:length(ECGsignal)-1)/freq;
  set(handles.Start_Filtering,'Enable','on')
  set(handles.hand_gain, 'Enable', 'on');
- handles.Filtered = abs(handles.h').*handles.ECGsignal;
+ disp(size(h))
+ disp(size(ECGsignal))
+ Filtered = abs((h)').*ECGsignal;
  guidata(hObject, handles);
 
 
@@ -430,27 +395,27 @@ function Start_Filtering_Callback(hObject, ~, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of Start_Filtering
 
-
+global time ECGsignal i h Filtered fmax
 set(handles.slider1, 'Enable', 'on');
 set(handles.slider2, 'Enable', 'on');
 x=linspace(0,100000,10000000);
 axes(handles.axes4)
 norm=animatedline;
 axes(handles.axes5)
-filtered = animatedline;
+Filtered = animatedline;
 ax=gca;
 ax.XLimMode='manual';
 ax.XLim=[handles.min handles.max];
 
-while (get(hObject,'Value'))&&( handles.i<length(handles.time)) 
+while (get(hObject,'Value'))&&( i<length(time)) 
     
-    addpoints(norm,handles.time(handles.i),handles.ECGsignal(handles.i));
-    addpoints(filtered,handles.time(handles.i),handles.filtered_signal(handles.i));
+    addpoints(norm,time(i),ECGsignal(i));
+    %addpoints(filtered,handles.time(handles.i),handles.filtered_signal(handles.i));
     
-    if handles.time(handles.i)>handles.scale
+    if time(i)>handles.scale
         set(handles.slider1, 'Enable', 'inactive');
-        handles.min=handles.time(handles.i)-handles.scale;
-        handles.max=handles.time(handles.i);
+        handles.min=time(i)-handles.scale;
+        handles.max=time(i);
         ax.XLim=[handles.min handles.max];
         set(handles.slider1, 'Max', handles.max-handles.scale);
         set(handles.slider1, 'value', handles.min);
@@ -464,7 +429,7 @@ while (get(hObject,'Value'))&&( handles.i<length(handles.time))
         
     end
     drawnow;
-    handles.i= handles.i+1;
+    i= i+1;
     guidata(hObject, handles);  %Get the newest GUI data
 end
 if get(hObject,'Value')==0
@@ -483,41 +448,43 @@ function hand_gain_Callback(hObject, eventdata, handles)
 % hObject    handle to hand_gain (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles.fsample = str2double(get(handles.Sampling_Box,'string'))
- handles.fmax = floor(handles.fsample/2);
- f = handles.fmax+1;
- handles.ang = 0:0.01:2*pi;
- g_z = ones(1,f);
- g_p=ones(1,f);
- g = ones(1,f);
- x=0:1:handles.fmax;
+global time ECGsignal i h Filtered fmax ang fsample
+fsample = str2double(get(handles.Sampling_Box,'string'))
+ fmax = floor(fsample/2);
+ f = fmax+1;
+ ang = 0:0.01:pi;
+ Zeros_Gain=ones(1,f);
+Poles_Gain=ones(1,f);
+Total_Gain=ones(1,f);
+ x=0:1:fmax;
  a=0;
  b=pi;
- handles.ang= (x-min(x))*(b-a)/(max(x)-min(x)) + a ;
+ ang= (x-min(x))*(b-a)/(max(x)-min(x)) + a ;
  for i = 1:length(handles.z)
      for j=1:f
-         xp_uni_cir(j) = 1*cos(handles.ang(j));
-         yp_uni_cir(j) = 1*sin(handles.ang(j));
-         len0(j) = sqrt((xp_uni_cir(j)-real(handles.z(i)))^2 + (yp_uni_cir(j)-imag(handles.z(i)))^2 )
-         l(i,j) = len0(j);
+       Xpole_unit(j) = 1*cos(ang(j));
+      Ypole_unit(j) = 1*sin(ang(j));
+      length_zero(j)=sqrt((Xpole_unit(j)-real(handles.z(i)))^2+(Ypole_unit(j)-imag(handles.z(i)))^2 ) ;
+      Total_length_zero(i,j)=length_zero(j);
      end
-  g_z(1,:) =g_z(1,:).*l(i,:);
+ Zeros_Gain(1,:)=Zeros_Gain(1,:).*Total_length_zero(i,:);
  end
  for i = 1:length(handles.p)
      for j=1:f
-         xp2_uni_cir(j) = 1*cos(handles.ang(j));
-         yp2_uni_cir(j) = 1*sin(handles.ang(j));
-         des(j) = sqrt((xp2_uni_cir(j)-real(handles.p(i)))^2 + (yp2_uni_cir(j)-imag(handles.p(i)))^2 )
-         d(i,j) = des(j);
+        Xpole_unit(j) = 1*cos(ang(j));
+      Ypole_unit(j) = 1*sin(ang(j));
+      length_Pole(j)=sqrt((Xpole_unit(j)-real(handles.p(i)))^2+(Ypole_unit(j)-imag(handles.p(i)))^2 ) ;
+      Total_length_pole(i,j)=length_Pole(j);
      end
-  g_p(1,:) =g_p(1,:).*d(i,:);
+  Poles_Gain(1,:)=Poles_Gain(1,:).*Total_length_pole(i,:);
  end
- g(1,:)=g_z(1,:)./g_p(1,:);
+ Total_Gain(1,:)=Zeros_Gain(1,:)./Poles_Gain(1,:);
+
  axes(handles.axes3)
  xlabel('Normalized Frequency (\time\pi rad/sample)');
  ylabel('Magnitude(db)');
  title('Magnitude response (Gain)');
- plot(20*log(g),'b')
+ plot(20*log(Total_Gain),'b')
  grid on
 
  
