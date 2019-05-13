@@ -22,7 +22,7 @@ function varargout = dig_fil(varargin)
 
 % Edit the above text to modify the response to help dig_fil
 
-% Last Modified by GUIDE v2.5 11-May-2019 23:05:53
+% Last Modified by GUIDE v2.5 13-May-2019 15:46:07
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -51,29 +51,16 @@ function dig_fil_OpeningFcn(hObject, eventdata, handles, varargin)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to dig_fil (see VARARGIN)
+global num den
 DrawUnitCircle(hObject, eventdata, handles);
-
 handles.i=1;
 handles.min=0;
 handles.scale=3;
 handles.max=handles.scale;
-set(handles.Start_Filtering,'Enable','off');
-set(handles.slider1, 'Enable', 'off');
-set(handles.slider1, 'Enable', 'off');
-set(handles.slider2, 'Enable', 'off');
-handles.time = [];
+set(handles.Start_Filtering,'Enable','off')
 guidata(hObject, handles);
- 
-% t=[0:0.1:20];
-% A=0.5;
-% fa=1;
-% y=A*cos(fa*t);
-% %calculate signal fft
-% handles.y_fft=fft(y);
-
-handles.p=[];   % Array holds poles in complex formula
-handles.z=[];   % Array holds zeros in complex formula
-% Choose default command line output for unit_circle
+handles.p=[];
+handles.z=[];
 handles.output = hObject;
 
 % Update handles structure
@@ -125,9 +112,8 @@ guidata(hObject, handles);
 
 function freq_plot(hObject, eventdata, handles)
 %clear the unit circuit axes
-global time ECGsignal i h Filtered fmax
+global time ECGsignal i h Filtered fmax num den
 cla(handles.axes1,'reset');
-fmax = 50;
 axes(handles.axes1)
 DrawUnitCircle(hObject, eventdata, handles);
 hold on
@@ -138,23 +124,21 @@ set(plot_p,'markersize',8,'linewidth',1.5,'Color', [255 100 100]/255);
 set(plot_z,'markersize',8,'linewidth',1.5,'Color', [105 100 200]/255);
 hold off;
 %Get the transfer function coeffecients
-[num,den]= zp2tf(handles.z',handles.p,1);
+[num,den]= zp2tf((handles.z)',handles.p,1);
+
 setappdata(0,'num_g',num)
 setappdata(0,'den_g',den)
-
-%Get the frequency response 
-[h,w] = freqz(num,den,3600);
-
-%plot the frequency response mag 
+ 
+% %Get the frequency response 
+[h,w] = freqz(num,den,length(ECGsignal));
 
 if (isempty(handles.p) && isempty(handles.z))
     cla(handles.axes2,'reset')
 else
     axes(handles.axes2)
-   %  plot(handles.w/pi,(abs(handles.h)))
-    plot((w/pi),(abs(h)),'r-');
-    xlabel('Normalized Frequency (\times\pi rad/sample)')
-    ylabel('Magnitude (dB)')
+    plot((w/pi)*fmax,(abs(h)),'r-');
+    xlabel('Frequency (rad)');
+    ylabel('Gain');
     grid on;
 end
  
@@ -297,18 +281,18 @@ function Browse_Button_Callback(hObject, eventdata, handles)
 % hObject    handle to Browse_Button (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global time ECGsignal i h Filtered
- [filename] = uigetfile({'*.mat'},'file selector');
+global time ECGsignal i h  Filteredsignal time2 num den
+[filename] = uigetfile({'*.mat'},'file selector');
  signal = load(filename);
  i = 1;
  freq = 200;
  ECGsignal = (signal.val)/200;
  time = (0:length(ECGsignal)-1)/freq;
+
  set(handles.Start_Filtering,'Enable','on')
  set(handles.hand_gain, 'Enable', 'on');
- disp(size(h))
- disp(size(ECGsignal))
- Filtered = abs((h)').*ECGsignal;
+
+
  guidata(hObject, handles);
 
 
@@ -335,58 +319,6 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-% --- Executes on slider movement.
-function slider1_Callback(hObject, eventdata, handles)
-% hObject    handle to slider1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'Value') returns position of slider
-%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-ax = axis;
-scale = ax(2)-ax(1);
-val = get(handles.slider1, 'value');
-step = get(handles.slider1, 'SliderStep');
-x1 = val+step(1);
-x2 = x1+scale;
-axis([x1 x2 ax(3) ax(4)]);
-guidata(hObject, handles);
-
-
-% --- Executes during object creation, after setting all properties.
-function slider1_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to slider1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: slider controls usually have a light gray background.
-if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor',[.9 .9 .9]);
-end
-
-
-% --- Executes on slider movement.
-function slider2_Callback(hObject, eventdata, handles)
-% hObject    handle to slider2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'Value') returns position of slider
-%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-
-
-% --- Executes during object creation, after setting all properties.
-function slider2_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to slider2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: slider controls usually have a light gray background.
-if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor',[.9 .9 .9]);
-end
-
-
 % --- Executes on button press in Start_Filtering.
 function Start_Filtering_Callback(hObject, ~, handles)
 % hObject    handle to Start_Filtering (see GCBO)
@@ -395,32 +327,33 @@ function Start_Filtering_Callback(hObject, ~, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of Start_Filtering
 
-global time ECGsignal i h Filtered fmax
-set(handles.slider1, 'Enable', 'on');
-set(handles.slider2, 'Enable', 'on');
-x=linspace(0,100000,10000000);
+global time ECGsignal i Filteredsignal time2 num den
+
+Filteredsignal = filter( num ,den,ECGsignal);
+
+axes(handles.axes6)
+plot(abs(fft(ECGsignal)))
+
+axes(handles.axes7)
+plot(abs(fft(Filteredsignal)))
+
 axes(handles.axes4)
 norm=animatedline;
 axes(handles.axes5)
-Filtered = animatedline;
-ax=gca;
-ax.XLimMode='manual';
-ax.XLim=[handles.min handles.max];
+Filtered  = animatedline;
+ 
 
 while (get(hObject,'Value'))&&( i<length(time)) 
     
-    addpoints(norm,time(i),ECGsignal(i));
-    %addpoints(filtered,handles.time(handles.i),handles.filtered_signal(handles.i));
+   addpoints(norm,time(i),ECGsignal(i));
+   addpoints(Filtered,time(i), Filteredsignal(i));
+   
     
     if time(i)>handles.scale
-        set(handles.slider1, 'Enable', 'inactive');
+       
         handles.min=time(i)-handles.scale;
         handles.max=time(i);
-        ax.XLim=[handles.min handles.max];
-        set(handles.slider1, 'Max', handles.max-handles.scale);
-        set(handles.slider1, 'value', handles.min);
         step = [.1/handles.max 1/handles.max];
-        set(handles.slider1, 'SliderStep', step);
         if get(hObject,'Value')==0
            set(handles.Start_Filtering,'string','pause','enable','on');
         else
@@ -437,9 +370,6 @@ if get(hObject,'Value')==0
 else
     set(handles.Start_Filtering,'string','start','enable','on');
 end
-set(handles.slider1, 'Enable', 'on');
-
-
 guidata(hObject, handles);
 
 
@@ -448,7 +378,7 @@ function hand_gain_Callback(hObject, eventdata, handles)
 % hObject    handle to hand_gain (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global time ECGsignal i h Filtered fmax ang fsample
+global time ECGsignal i h Filtered fmax ang fsample f num den
 fsample = str2double(get(handles.Sampling_Box,'string'))
  fmax = floor(fsample/2);
  f = fmax+1;
@@ -462,30 +392,143 @@ Total_Gain=ones(1,f);
  ang= (x-min(x))*(b-a)/(max(x)-min(x)) + a ;
  for i = 1:length(handles.z)
      for j=1:f
-       Xpole_unit(j) = 1*cos(ang(j));
-      Ypole_unit(j) = 1*sin(ang(j));
-      length_zero(j)=sqrt((Xpole_unit(j)-real(handles.z(i)))^2+(Ypole_unit(j)-imag(handles.z(i)))^2 ) ;
-      Total_length_zero(i,j)=length_zero(j);
+        Xpole_unit(j) = 1*cos(ang(j));
+        Ypole_unit(j) = 1*sin(ang(j));
+        length_zero(j)=sqrt((Xpole_unit(j)-real(handles.z(i)))^2+(Ypole_unit(j)-imag(handles.z(i)))^2 ) ;
+        Total_length_zero(i,j)=length_zero(j);
      end
  Zeros_Gain(1,:)=Zeros_Gain(1,:).*Total_length_zero(i,:);
  end
  for i = 1:length(handles.p)
      for j=1:f
         Xpole_unit(j) = 1*cos(ang(j));
-      Ypole_unit(j) = 1*sin(ang(j));
-      length_Pole(j)=sqrt((Xpole_unit(j)-real(handles.p(i)))^2+(Ypole_unit(j)-imag(handles.p(i)))^2 ) ;
-      Total_length_pole(i,j)=length_Pole(j);
+        Ypole_unit(j) = 1*sin(ang(j));
+        length_Pole(j)=sqrt((Xpole_unit(j)-real(handles.p(i)))^2+(Ypole_unit(j)-imag(handles.p(i)))^2 ) ;
+        Total_length_pole(i,j)=length_Pole(j);
      end
   Poles_Gain(1,:)=Poles_Gain(1,:).*Total_length_pole(i,:);
  end
  Total_Gain(1,:)=Zeros_Gain(1,:)./Poles_Gain(1,:);
 
  axes(handles.axes3)
- xlabel('Normalized Frequency (\time\pi rad/sample)');
- ylabel('Magnitude(db)');
- title('Magnitude response (Gain)');
- plot(20*log(Total_Gain),'b')
+ plot(abs(Total_Gain),'b')
+ xlabel('Frequency (rad)');
+ ylabel('Gain');
+ 
  grid on
 
  
  guidata(hObject, handles);
+
+
+% --- Executes on button press in Move_Zero.
+function Move_Zero_Callback(hObject, eventdata, handles)
+% hObject    handle to Move_Zero (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+[x,y]=ginput(1);
+%search for the selected zero from the zero array and remove it
+temp=find((real(handles.z <(x+0.1)) & real(handles.z>(x-0.1))));
+handles.z(find((real(handles.z <(x+0.1)) & real(handles.z>(x-0.1)))))=[];
+% Update handles structure
+guidata(hObject, handles);
+%plot the freq response and its effect in the original signal
+freq_plot(hObject, eventdata, handles);
+% Update handles structure
+guidata(hObject, handles);
+[x,y]=ginput(1);
+%push a point and its conjugate to the zeros array 
+handles.z(length(handles.z)+1)=x+1j*y;
+% Update handles structure
+guidata(hObject, handles);
+%plot the freq response and its effect in the original signal
+freq_plot(hObject, eventdata, handles);
+
+% Update handles structure
+guidata(hObject, handles);
+
+
+
+
+% --- Executes on button press in Move_Zero_Conj.
+function Move_Zero_Conj_Callback(hObject, eventdata, handles)
+% hObject    handle to Move_Zero_Conj (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+[x,y]=ginput(1);
+%search for the selected zero from the zero array and remove it
+temp=find((real(handles.z <(x+0.1)) & real(handles.z>(x-0.1))));
+handles.z(find((real(handles.z <(x+0.1)) & real(handles.z>(x-0.1)))))=[];
+% Update handles structure
+guidata(hObject, handles);
+%plot the freq response and its effect in the original signal
+freq_plot(hObject, eventdata, handles);
+% Update handles structure
+guidata(hObject, handles);
+[x,y]=ginput(1);
+%push a point and its conjugate to the zeros array 
+handles.z(length(handles.z)+1)=x+1j*y;
+handles.z(length(handles.z)+1)=x+1j*(-y);
+% Update handles structure
+guidata(hObject, handles);
+%plot the freq response and its effect in the original signal
+freq_plot(hObject, eventdata, handles);
+
+% Update handles structure
+guidata(hObject, handles);
+
+
+% --- Executes on button press in Move_Pole.
+function Move_Pole_Callback(hObject, eventdata, handles)
+% hObject    handle to Move_Pole (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+[x,y]=ginput(1);
+%search for the selected zero from the zero array and remove it
+temp=find((real(handles.p <(x+0.1)) & real(handles.p>(x-0.1))));
+handles.p(find((real(handles.p <(x+0.1)) & real(handles.p>(x-0.1)))))=[];
+% Update handles structure
+guidata(hObject, handles);
+%plot the freq response and its effect in the original signal
+freq_plot(hObject, eventdata, handles);
+% Update handles structure
+guidata(hObject, handles);
+[x,y]=ginput(1);
+%push a point and its conjugate to the zeros array 
+handles.p(length(handles.p)+1)=x+1j*y;
+% Update handles structure
+guidata(hObject, handles);
+%plot the freq response and its effect in the original signal
+freq_plot(hObject, eventdata, handles);
+
+% Update handles structure
+guidata(hObject, handles);
+
+
+% --- Executes on button press in Move_Pole_Conj.
+function Move_Pole_Conj_Callback(hObject, eventdata, handles)
+% hObject    handle to Move_Pole_Conj (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+[x,y]=ginput(1);
+%search for the selected zero from the zero array and remove it
+temp=find((real(handles.p <(x+0.1)) & real(handles.p>(x-0.1))));
+handles.p(find((real(handles.p <(x+0.1)) & real(handles.p>(x-0.1)))))=[];
+% Update handles structure
+guidata(hObject, handles);
+%plot the freq response and its effect in the original signal
+freq_plot(hObject, eventdata, handles);
+% Update handles structure
+guidata(hObject, handles);
+[x,y]=ginput(1);
+%push a point and its conjugate to the zeros array 
+handles.p(length(handles.p)+1)=x+1j*y;
+handles.p(length(handles.p)+1)=x+1j*(-y);
+% Update handles structure
+guidata(hObject, handles);
+%plot the freq response and its effect in the original signal
+freq_plot(hObject, eventdata, handles);
+
+% Update handles structure
+guidata(hObject, handles);
+
