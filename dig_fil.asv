@@ -127,7 +127,7 @@ set(plot_z,'markersize',8,'linewidth',1.5,'Color', [105 100 200]/255);
 hold off;
 %Get the transfer function coeffecients
 
-[num,den]= zp2tf((handles.z)',(handles.p)',str2double(get(handles.Gain_Box,'string')));
+[num,den]= zp2tf((handles.z)',(handles.p)');
 
 setappdata(0,'num_g',num)
 setappdata(0,'den_g',den)
@@ -566,7 +566,7 @@ Filteredsignal = zeros(1,size);
 i=1;
 while ( (get(hObject,'Value'))==1&&( i<length(time)) )
     
-   Filteredsignal(i) = filter(num,den,ECGsignal(i)); 
+   Filteredsignal(i) = filter(num,den,ECGsignal(1,i)); 
    addpoints(norm,time(i),ECGsignal(i));
    addpoints(Filtered,time(i), Filteredsignal(i));
    
